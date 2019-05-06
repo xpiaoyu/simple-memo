@@ -6,6 +6,8 @@ import ReactMde from 'react-mde';
 import "react-mde/lib/styles/css/react-mde-all.css";
 import axios from 'axios';
 
+const APP_URL = 'http://localhost:8083';
+
 class Article extends React.Component {
   constructor(props) {
     super(props);
@@ -17,14 +19,15 @@ class Article extends React.Component {
 
     const articleId = props.match && props.match.params && props.match.params.postId;
     console.log(articleId);
+    this.articleId = articleId;
     if (articleId) {
-      axios.get('http://localhost:8083/getArticle?id=' + articleId).then((resp) => {
+      axios.get(APP_URL + '/get?id=' + articleId).then((resp) => {
         if (resp.status === 200) {
           this.setState({markdownSrc: resp.data});
         }
       });
     }
-    this.editorHeight = window.innerHeight * 0.8;
+    this.editorHeight = window.innerHeight * 0.75;
   }
 
   getMarkdownText() {
@@ -40,7 +43,14 @@ class Article extends React.Component {
   }
 
   handleOk() {
-    this.setState({modalVisible: false});
+    this.setState({confirmLoading: true});
+    axios.post(APP_URL + '/post',
+      {md: this.state.markdownSrc, sum: this.getMarkdownText(), id: this.articleId}
+    ).then((resp) => {
+      if (resp.status === 200) {
+        this.setState({confirmLoading: false, modalVisible: false})
+      }
+    });
   }
 
   handleCancel() {

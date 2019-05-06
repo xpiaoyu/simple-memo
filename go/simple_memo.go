@@ -12,7 +12,8 @@ import (
 const (
 	FasthttpAddr      = ":8083"
 	RouteArticleList  = "/list"
-	RouteGetArticle   = "/getArticle"
+	RouteGetArticle   = "/get"
+	RoutePostArticle  = "/post"
 	ContentTypeJson   = "application/json"
 	MarkdownSeparator = "<article summary separator>"
 )
@@ -22,6 +23,12 @@ type Article struct {
 	Summary   string `json:"summary"`
 	Markdown  string `json:"-"`
 	Timestamp int64  `json:"timestamp"`
+}
+
+type UploadPost struct {
+	Md  string `json:"md"`
+	Sum string `json:"sum"`
+	Id  string `json:"id"`
 }
 
 var ArticleList []*Article
@@ -37,12 +44,56 @@ func main() {
 			getArticleList(c)
 		case RouteGetArticle:
 			getArticle(c)
+		case RoutePostArticle:
+			postArticle(c)
 		default:
 			c.SetStatusCode(401)
 			c.WriteString("Unrecognized request.")
 		}
 	}
 	fasthttp.ListenAndServe(FasthttpAddr, firstHandler)
+}
+
+func postArticle(c *fasthttp.RequestCtx) {
+	if string(c.Method()) == "OPTIONS" {
+		c.SetStatusCode(204)
+		c.Response.Header.Set("access-control-allow-headers", "content-type")
+		return
+	}
+	//markdown := string(c.PostArgs().Peek("md"))
+	//summary := string(c.PostArgs().Peek("sum"))
+	//body := string(c.PostBody())
+	upload := new(UploadPost)
+	err := json.Unmarshal(c.PostBody(), upload)
+	if err != nil {
+		c.SetStatusCode(400)
+		return
+	}
+	DebugPrintln(upload.Md, upload.Sum)
+
+	bytes := []byte(upload.Md + MarkdownSeparator + upload.Sum)
+	filename := "article/" + upload.Id + ".md"
+	if err := ioutil.WriteFile(filename, bytes, os.ModePerm); err != nil {
+		c.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+	t, ok := ArticleMap[upload.Id]
+	if !ok {
+		c.SetStatusCode(fasthttp.StatusInternalServerError)
+		DebugPrintln("can't find article in map, id:", upload.Id)
+		return
+	}
+	t.Id = upload.Id
+	t.Markdown = upload.Md
+	t.Summary = upload.Sum
+	fi, err := os.Stat(filename)
+	if err != nil {
+		c.SetStatusCode(fasthttp.StatusInternalServerError)
+		DebugPrintln(err)
+		return
+	}
+	t.Timestamp = fi.ModTime().UnixNano() / 1e6
+	c.WriteString("success")
 }
 
 func getArticle(c *fasthttp.RequestCtx) {
@@ -56,6 +107,7 @@ func getArticle(c *fasthttp.RequestCtx) {
 }
 
 func scanArticleDir() {
+	ArticleList = make([]*Article, 0)
 	files, err := ioutil.ReadDir("article")
 	if err != nil {
 		DebugPrintln("[error] ioutil.ReadDir failed err:", err)
