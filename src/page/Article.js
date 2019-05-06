@@ -6,7 +6,8 @@ import ReactMde from 'react-mde';
 import "react-mde/lib/styles/css/react-mde-all.css";
 import axios from 'axios';
 
-const APP_URL = 'http://localhost:8083';
+const APP_URL = 'http://192.168.50.78:8083';
+// const APP_URL = 'http://localhost:8083';
 
 class Article extends React.Component {
   constructor(props) {
@@ -59,7 +60,7 @@ class Article extends React.Component {
   }
 
   handleValueChange(value) {
-    this.setState({markdownSrc: value})
+    this.setState({markdownSrc: value});
   }
 
   render() {

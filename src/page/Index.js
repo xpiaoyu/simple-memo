@@ -8,6 +8,8 @@ import {Link} from 'react-router-dom';
 import articleStore from '../store/ArticleStore';
 import '../IndexPage.css';
 
+const APP_URL = 'http://192.168.50.78:8083'
+
 class Index extends React.Component {
   constructor(props) {
     super(props);
@@ -17,7 +19,7 @@ class Index extends React.Component {
 
     articleStore.setKeywords('');
 
-    axios.get('http://localhost:8083/list').then((resp) => {
+    axios.get(APP_URL + '/list').then((resp) => {
       console.log(resp);
       if (resp.status === 200) {
         // this.setState({

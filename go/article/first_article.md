@@ -5,10 +5,8 @@ let a = 'Hello world!';
 console.log(a);
 ```
 
-<article summary separator>
-First article 文章概要 长概要
-
-First article 文章概要 长概要
-First article 文章概要 长概要
-First article 文章概要 长概要
-First article 文章概要 长概要
+# Go and enjoy yourself!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11111111111111111111111111111111111111111111111111111111111111111111111111111111
+<article summary separator>First article
+let a = 'Hello world!';
+console.log(a);
+Go and enjoy yourself!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11111111111111111111111111111111111111111111111111111111111111111111111111111111

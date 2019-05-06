@@ -13,8 +13,8 @@ import Article from "./page/Article";
 ReactDOM.render(
   <HashRouter>
     <Row>
-      <Col xs={0} sm={2} md={2} lg={3}/>
-      <Col xs={24} sm={20} md={20} lg={18}>
+      <Col xs={0} sm={2} md={2} lg={2} xl={2}/>
+      <Col xs={24} sm={20} md={20} lg={20} xl={20}>
         <Route exact path="/" component={Index}/>
         <Route path="/post/:postId" component={Article}/>
       </Col>
