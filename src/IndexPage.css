@@ -1,8 +1,9 @@
 .shadow {
   text-shadow: 0 0 1px;
-  font-size: 16px;
+  font-size: 1.3em;
 }
 
 .list_desc {
   color: #888;
+  font-size: 1.1em;
 }

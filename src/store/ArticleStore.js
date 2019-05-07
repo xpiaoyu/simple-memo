@@ -1,12 +1,9 @@
-import {decorate, observable, computed, autorun} from 'mobx';
+import {decorate, observable, computed} from 'mobx';
 
 class ArticleStore {
   constructor() {
     this.articleList = [];
     this.keywords = '';
-    autorun(() => {
-      this.articleList.forEach((item) => console.log(item.timestamp));
-    });
   }
 
   setKeywords(k) {
@@ -26,7 +23,7 @@ class ArticleStore {
   }
 
   get filteredArticle() {
-    console.log('filtered', this.articleList);
+    // console.log('filtered', this.articleList);
     if (!this.articleList) {
       return []
     }

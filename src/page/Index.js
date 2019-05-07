@@ -1,5 +1,5 @@
 import React from 'react';
-import {List, AutoComplete, Button, Affix, Modal, Input, message, Spin} from 'antd';
+import {List, Button, Affix, Modal, Input, message, Spin} from 'antd';
 import axios from 'axios';
 import moment from 'moment';
 import {observer} from 'mobx-react';
@@ -58,9 +58,9 @@ class Index extends React.Component {
     this.setState({activeKey: key})
   }
 
-  handleSearch(key) {
-    console.log('Handle search.', key, articleStore.filteredArticle);
-    articleStore.setKeywords(key);
+  handleSearch(e) {
+    // console.log('Handle search.', e.target.value, articleStore.filteredArticle);
+    articleStore.setKeywords(e.target.value);
   }
 
   getTitle(text) {
@@ -147,16 +147,15 @@ class Index extends React.Component {
   render() {
     const data = articleStore.filteredArticle;
     const {visible, confirmLoading, spinning} = this.state;
-    console.log(articleStore.filteredArticle);
     return (
       <div>
         <Spin spinning={spinning}>
           <div>
-            <AutoComplete
+            <Input
               // dataSource={dataSource}
               style={{width: '100%'}}
               // onSelect={onSelect}
-              onSearch={this.handleSearch.bind(this)}
+              onChange={this.handleSearch.bind(this)}
               placeholder="搜索"
               allowClear={true}
               value={articleStore.keywords}
