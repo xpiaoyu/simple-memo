@@ -23,9 +23,8 @@ yarn-debug.log*
 yarn-error.log*
 
 .idea
-/build
 *.iml
+*.exe
 /dist
 yarn.lock
-*.exe
 package-lock.json

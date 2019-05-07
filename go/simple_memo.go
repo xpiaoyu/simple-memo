@@ -7,15 +7,17 @@ import (
 	"strings"
 	"fmt"
 	"encoding/json"
+	"sort"
 )
 
 const (
-	FasthttpAddr      = ":8083"
-	RouteArticleList  = "/list"
-	RouteGetArticle   = "/get"
-	RoutePostArticle  = "/post"
-	ContentTypeJson   = "application/json"
-	MarkdownSeparator = "<article summary separator>"
+	FasthttpAddr       = ":8083"
+	RouteArticleList   = "/list"
+	RouteGetArticle    = "/get"
+	RoutePostArticle   = "/post"
+	RouteCreateArticle = "/create"
+	ContentTypeJson    = "application/json"
+	MarkdownSeparator  = "<article summary separator>"
 )
 
 type Article struct {
@@ -31,7 +33,19 @@ type UploadPost struct {
 	Id  string `json:"id"`
 }
 
-var ArticleList []*Article
+type ArticlePointArray []*Article
+
+func (c ArticlePointArray) Len() int {
+	return len(c)
+}
+func (c ArticlePointArray) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+func (c ArticlePointArray) Less(i, j int) bool {
+	return c[i].Timestamp > c[j].Timestamp
+}
+
+var ArticleList ArticlePointArray
 var ArticleMap map[string]*Article
 
 func main() {
@@ -46,12 +60,64 @@ func main() {
 			getArticle(c)
 		case RoutePostArticle:
 			postArticle(c)
+		case RouteCreateArticle:
+			createArticle(c)
 		default:
 			c.SetStatusCode(401)
 			c.WriteString("Unrecognized request.")
 		}
 	}
 	fasthttp.ListenAndServe(FasthttpAddr, firstHandler)
+}
+
+func createArticle(c *fasthttp.RequestCtx) {
+	if string(c.Method()) == "OPTIONS" {
+		c.SetStatusCode(204)
+		c.Response.Header.Set("access-control-allow-headers", "content-type")
+		return
+	}
+	t := new(struct {
+		Id string `json:"id"`
+	})
+	if err := json.Unmarshal(c.PostBody(), t); err != nil {
+		c.SetStatusCode(fasthttp.StatusInternalServerError)
+		DebugPrintln(err)
+	}
+	articleId := t.Id
+	if len(articleId) < 1 {
+		c.SetStatusCode(400)
+		c.WriteString("article id invalid")
+		return
+	}
+	filename := "article/" + articleId + ".md"
+	if canCreateFile(filename) {
+		a := new(Article)
+		a.Id = articleId
+		a.Summary = articleId
+		a.Markdown = "# " + articleId + "\n"
+		err := ioutil.WriteFile(filename, []byte(a.Markdown+MarkdownSeparator+a.Summary), os.ModePerm)
+		if err != nil {
+			DebugPrintln("[error] can't write file err msg:", err)
+			c.SetStatusCode(fasthttp.StatusInternalServerError)
+			return
+		}
+		fi, err := os.Stat(filename)
+		if err != nil {
+			c.SetStatusCode(fasthttp.StatusInternalServerError)
+			DebugPrintln(err)
+			return
+		}
+		a.Timestamp = fi.ModTime().UnixNano() / 1e6
+		ArticleMap[articleId] = a
+		ArticleList = append(ArticleList, a)
+		sort.Sort(ArticleList)
+		c.SetStatusCode(fasthttp.StatusOK)
+		c.WriteString("success")
+	} else {
+		c.SetStatusCode(fasthttp.StatusOK)
+		c.WriteString("existed")
+		return
+	}
 }
 
 func postArticle(c *fasthttp.RequestCtx) {
@@ -69,18 +135,16 @@ func postArticle(c *fasthttp.RequestCtx) {
 		c.SetStatusCode(400)
 		return
 	}
-	DebugPrintln(upload.Md, upload.Sum)
-
-	bytes := []byte(upload.Md + MarkdownSeparator + upload.Sum)
-	filename := "article/" + upload.Id + ".md"
-	if err := ioutil.WriteFile(filename, bytes, os.ModePerm); err != nil {
-		c.SetStatusCode(fasthttp.StatusInternalServerError)
-		return
-	}
 	t, ok := ArticleMap[upload.Id]
 	if !ok {
 		c.SetStatusCode(fasthttp.StatusInternalServerError)
 		DebugPrintln("can't find article in map, id:", upload.Id)
+		return
+	}
+	bytes := []byte(upload.Md + MarkdownSeparator + upload.Sum)
+	filename := "article/" + upload.Id + ".md"
+	if err := ioutil.WriteFile(filename, bytes, os.ModePerm); err != nil {
+		c.SetStatusCode(fasthttp.StatusInternalServerError)
 		return
 	}
 	t.Id = upload.Id
@@ -93,11 +157,13 @@ func postArticle(c *fasthttp.RequestCtx) {
 		return
 	}
 	t.Timestamp = fi.ModTime().UnixNano() / 1e6
+	sort.Sort(ArticleList)
 	c.WriteString("success")
 }
 
 func getArticle(c *fasthttp.RequestCtx) {
 	articleId := string(c.QueryArgs().Peek("id"))
+	DebugPrintln("article id:", articleId)
 	article, ok := ArticleMap[articleId]
 	if !ok {
 		c.SetStatusCode(fasthttp.StatusNotFound)
@@ -107,7 +173,7 @@ func getArticle(c *fasthttp.RequestCtx) {
 }
 
 func scanArticleDir() {
-	ArticleList = make([]*Article, 0)
+	ArticleList = *new(ArticlePointArray)
 	files, err := ioutil.ReadDir("article")
 	if err != nil {
 		DebugPrintln("[error] ioutil.ReadDir failed err:", err)
@@ -134,6 +200,7 @@ func scanArticleDir() {
 			ArticleMap[t.Id] = t
 		}
 	}
+	sort.Sort(ArticleList)
 	DebugPrintln("scan article directory successfully")
 	return
 }
@@ -156,4 +223,18 @@ func getSummaryAndMarkdown(filename string) (markdown, summary string, err error
 func getArticleList(c *fasthttp.RequestCtx) {
 	c.SetContentType(ContentTypeJson)
 	json.NewEncoder(c).Encode(ArticleList)
+}
+
+func canCreateFile(filename string) bool {
+	_, err := os.Stat(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// path is not existed
+			return true
+		} else {
+			// unknown error
+			return false
+		}
+	}
+	return false
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import {List, AutoComplete} from 'antd';
+import {List, AutoComplete, Button, Affix, Modal, Input, message, Spin} from 'antd';
 import axios from 'axios';
 import moment from 'moment';
 import {observer} from 'mobx-react';
@@ -8,25 +8,39 @@ import {Link} from 'react-router-dom';
 import articleStore from '../store/ArticleStore';
 import '../IndexPage.css';
 
-const APP_URL = 'http://192.168.50.78:8083'
+// const APP_URL = 'http://192.168.50.78:8083';
+// const APP_URL = 'http://localhost:8083';
+const APP_URL = 'http://mv.piaoyu.org:8083';
 
 class Index extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       activeKey: [],
+      visible: false,
+      confirmLoading: false,
+      newArticleId: '',
+      spinning: false
     };
 
-    articleStore.setKeywords('');
+    // articleStore.setKeywords('');
+  }
 
+  componentDidMount() {
+    this.loadArticleList();
+  }
+
+  loadArticleList() {
+    this.setState({spinning: true});
     axios.get(APP_URL + '/list').then((resp) => {
       console.log(resp);
       if (resp.status === 200) {
-        // this.setState({
-        //   articleList: resp.data
-        // });
         articleStore.setArticle(resp.data);
       }
+      this.setState({spinning: false});
+    }).catch(err => {
+      message.error('列表获取失败 ' + err);
+      articleStore.setArticle([]);
     });
   }
 
@@ -50,9 +64,12 @@ class Index extends React.Component {
   }
 
   getTitle(text) {
-    console.log(text.length);
-    console.log(text.indexOf('\n'));
     let limit = text.indexOf('\n');
+    if (limit < 0) {
+      limit = 30;
+    } else {
+      limit += 1;
+    }
     let ellipsis = false;
     if (limit > 30) {
       limit = 30;
@@ -75,43 +92,115 @@ class Index extends React.Component {
     return text;
   }
 
+  onModalOpen() {
+    this.setState({
+      visible: true
+    });
+  }
+
+  handleModalCancel() {
+    this.setState({
+      visible: false,
+      confirmLoading: false
+    });
+  }
+
+  handleModalOk() {
+    this.setState({
+      confirmLoading: true
+    });
+    axios.post(APP_URL + '/create', {
+      id: this.state.newArticleId
+    }).then((resp) => {
+      if (resp.status === 200) {
+        if (resp.data === 'success') {
+          message.success('创建文章成功!');
+          this.setState({
+            confirmLoading: false,
+            visible: false
+          });
+          this.loadArticleList();
+        } else if (resp.data === 'existed') {
+          message.error('失败：文章ID已存在!');
+          this.setState({
+            confirmLoading: false
+          });
+        } else {
+          message.warn('未知错误', resp.data);
+          this.setState({
+            confirmLoading: false
+          });
+        }
+      }
+    }).catch((err) => {
+      console.log(err);
+      this.setState({confirmLoading: false});
+      message.error('创建失败 ' + err);
+    });
+  }
+
+  onNewArticleIdChange(v) {
+    this.setState({newArticleId: v.target.value});
+  }
+
+
   render() {
     const data = articleStore.filteredArticle;
+    const {visible, confirmLoading, spinning} = this.state;
     console.log(articleStore.filteredArticle);
     return (
       <div>
-        <AutoComplete
-          // dataSource={dataSource}
-          style={{width: '100%'}}
-          // onSelect={onSelect}
-          onSearch={this.handleSearch.bind(this)}
-          placeholder="搜索"
-          allowClear={true}
-        />
-        <List
-          itemLayout="horizontal"
-          dataSource={data}
-          renderItem={(item, num) => (
-            <List.Item>
-              <Link style={{textDecoration: 'none'}} to={'/post/' + item.id}>
-                <List.Item.Meta
-                  title={<div className="shadow">{this.getTitle(item.summary)}</div>}
-                  description={
-                    <div>
-                      <b>{moment(item.timestamp).format('YYYY-MM-DD HH:mm')}</b> {this.getHundredTitle(item.summary)}
-                    </div>}
-                  style={{cursor: 'pointer'}}
-                />
-              </Link>
-            </List.Item>
-          )}
-        />
+        <Spin spinning={spinning}>
+          <div>
+            <AutoComplete
+              // dataSource={dataSource}
+              style={{width: '100%'}}
+              // onSelect={onSelect}
+              onSearch={this.handleSearch.bind(this)}
+              placeholder="搜索"
+              allowClear={true}
+              value={articleStore.keywords}
+            />
+            <List
+              itemLayout="horizontal"
+              dataSource={data}
+              renderItem={(item) => (
+                <List.Item>
+                  <Link style={{textDecoration: 'none', width: '100%'}} to={'/post/' + item.id}>
+                    <List.Item.Meta
+                      title={<div className="shadow">{this.getTitle(item.summary)}</div>}
+                      description={
+                        <div className="list_desc">
+                          <b>{moment(item.timestamp).format('YYYY-MM-DD HH:mm')}</b> {this.getHundredTitle(item.summary)}
+                        </div>}
+                      style={{cursor: 'pointer'}}
+                    />
+                  </Link>
+                </List.Item>
+              )}
+            />
+          </div>
+        </Spin>
+        <Affix style={{position: 'fixed', bottom: '10px'}}>
+          <Button type="primary" shape="circle" icon="file-add" size="default" onClick={this.onModalOpen.bind(this)}/>
+        </Affix>
+        <Modal
+          title="创建一篇新的文章"
+          visible={visible}
+          onOk={this.handleModalOk.bind(this)} okText={'创建'}
+          confirmLoading={confirmLoading}
+          onCancel={this.handleModalCancel.bind(this)} cancelText={'取消'}
+        >
+          <div>
+            <Input size="large" placeholder="文章标题" value={this.state.newArticleId}
+                   onChange={this.onNewArticleIdChange.bind(this)}/>
+          </div>
+        </Modal>
       </div>
     );
   }
 }
 
 observer(Index);
-observer(List);
 
 export default Index;

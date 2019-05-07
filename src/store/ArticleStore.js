@@ -27,6 +27,9 @@ class ArticleStore {
 
   get filteredArticle() {
     console.log('filtered', this.articleList);
+    if (!this.articleList) {
+      return []
+    }
     return this.articleList.filter((item) => item.summary.toLowerCase().indexOf(this.keywords.toLowerCase()) > -1);
   }
 }

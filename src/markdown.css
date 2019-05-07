@@ -10,7 +10,7 @@ html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockq
   margin: 0;
   padding: 0;
   border: 0;
-  text-shadow: 1px 1px 3px #cccccc;
+  text-shadow: 1px 1px 0px #eaeaea;
 }
 
 /* BODY
@@ -25,7 +25,7 @@ body {
   padding: 20px;
   max-width: 960px;
   margin: 0 auto;
-  word-break: break-word;
+  word-wrap: break-word;
 }
 
 body>*:first-child {
@@ -172,16 +172,16 @@ dl dd>:last-child {
 =============================================================================*/
 
 pre, code, tt {
-  font-size: 14px;
+  font-size: 90%;
   font-family: Consolas, "Liberation Mono", Courier, monospace;
 }
 
 code, tt {
   margin: 0 0;
-  padding: 0 0;
+  padding: 1px 3px;
   border: 1px solid #eaeaea;
-  background-color: #f8f8f8;
-  border-radius: 3px;
+  background-color: #eaeaea;
+  border-radius: 6px;
 }
 
 pre>code {

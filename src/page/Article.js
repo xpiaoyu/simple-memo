@@ -1,13 +1,14 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import '../markdown.css';
-import {Button, Modal, Affix} from 'antd';
+import {Button, Modal, Affix, message} from 'antd';
 import ReactMde from 'react-mde';
 import "react-mde/lib/styles/css/react-mde-all.css";
 import axios from 'axios';
 
-const APP_URL = 'http://192.168.50.78:8083';
+// const APP_URL = 'http://192.168.50.78:8083';
 // const APP_URL = 'http://localhost:8083';
+const APP_URL = 'http://mv.piaoyu.org:8083';
 
 class Article extends React.Component {
   constructor(props) {
@@ -22,10 +23,15 @@ class Article extends React.Component {
     console.log(articleId);
     this.articleId = articleId;
     if (articleId) {
-      axios.get(APP_URL + '/get?id=' + articleId).then((resp) => {
+      // 兼容 IE11
+      document.title = articleId;
+      let id = window.encodeURI(articleId);
+      axios.get(APP_URL + '/get?id=' + id).then((resp) => {
         if (resp.status === 200) {
           this.setState({markdownSrc: resp.data});
         }
+      }).catch(err => {
+        message.error('文章获取失败 ' + err);
       });
     }
     this.editorHeight = window.innerHeight * 0.75;
@@ -49,8 +55,13 @@ class Article extends React.Component {
       {md: this.state.markdownSrc, sum: this.getMarkdownText(), id: this.articleId}
     ).then((resp) => {
       if (resp.status === 200) {
-        this.setState({confirmLoading: false, modalVisible: false})
+        this.setState({confirmLoading: false, modalVisible: false});
+        message.success('保存成功!');
       }
+    }).catch((error) => {
+      console.log(error);
+      this.setState({confirmLoading: false});
+      message.error('保存失败 ' + error);
     });
   }
 
@@ -67,19 +78,12 @@ class Article extends React.Component {
     const {modalVisible, confirmLoading, markdownSrc} = this.state;
     return (
       <div>
-        <div>
-          <Affix offsetTop={20}>
-            <Button style={{marginRight: '20px'}} type="default"
-                    onClick={this.onEditClick.bind(this)} shape="circle" icon="edit" size="large"/>
-            <Button type="danger" shape="circle" icon="delete" size="large"/>
-          </Affix>
-        </div>
         <div id="markdown_area">
           <ReactMarkdown source={markdownSrc}/>
         </div>
         <div>
           <Modal
-            width={'100%'} style={{maxWidth: '100%', top: '0'}} bodyStyle={{padding: '5px'}}
+            width={'100%'} style={{maxWidth: '100%', top: '0', margin: 0}} bodyStyle={{padding: '5px'}}
             title="Markdown editor"
             visible={modalVisible}
             onOk={this.handleOk.bind(this)} okText={'保存'}
@@ -95,6 +99,11 @@ class Article extends React.Component {
             </div>
           </Modal>
         </div>
+        <Affix style={{position: 'fixed', bottom: '10px'}}>
+          <Button style={{marginRight: '10px'}} type="primary"
+                  onClick={this.onEditClick.bind(this)} shape="circle" icon="edit" size="default"/>
+          {/*<Button type="danger" shape="circle" icon="delete" size="default"/>*/}
+        </Affix>
       </div>
     );
   }
