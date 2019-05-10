@@ -33,7 +33,7 @@ class Index extends React.Component {
   loadArticleList() {
     this.setState({spinning: true});
     axios.get(APP_URL + '/list').then((resp) => {
-      console.log(resp);
+      // console.log(resp);
       if (resp.status === 200) {
         articleStore.setArticle(resp.data);
       }

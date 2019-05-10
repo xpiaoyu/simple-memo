@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import '../markdown.css';
-import {Button, Modal, Affix, message} from 'antd';
+import {Button, Modal, Affix, message, Spin} from 'antd';
 import ReactMde from 'react-mde';
 import "react-mde/lib/styles/css/react-mde-all.css";
 import axios from 'axios';
@@ -16,9 +16,13 @@ class Article extends React.Component {
     this.state = {
       modalVisible: false,
       confirmLoading: false,
-      markdownSrc: ''
+      markdownSrc: '',
+      loading: false
     };
+  }
 
+  componentDidMount() {
+    const props = this.props;
     const articleId = props.match && props.match.params && props.match.params.postId;
     console.log(articleId);
     this.articleId = articleId;
@@ -26,13 +30,14 @@ class Article extends React.Component {
       // 兼容 IE11
       document.title = articleId;
       let id = window.encodeURI(articleId);
+      this.setState({loading: true});
       axios.get(APP_URL + '/get?id=' + id).then((resp) => {
         if (resp.status === 200) {
           this.setState({markdownSrc: resp.data});
         }
-      }).catch(err => {
-        message.error('文章获取失败 ' + err);
-      });
+      })
+        .catch(err => message.error('文章获取失败 ' + err))
+        .finally(() => this.setState({loading: false}));
     }
     this.editorHeight = window.innerHeight * 0.75;
   }
@@ -75,15 +80,17 @@ class Article extends React.Component {
   }
 
   render() {
-    const {modalVisible, confirmLoading, markdownSrc} = this.state;
+    const {modalVisible, confirmLoading, markdownSrc, loading} = this.state;
     return (
       <div>
-        <div id="markdown_area">
-          <ReactMarkdown source={markdownSrc}/>
-        </div>
+        <Spin spinning={loading}>
+          <div id="markdown_area">
+            <ReactMarkdown source={markdownSrc}/>
+          </div>
+        </Spin>
         <div>
           <Modal
-            width={'100%'} style={{maxWidth: '100%', top: '0', margin: 0}} bodyStyle={{padding: '5px'}}
+            width={'100%'} style={{maxWidth: '1000px', top: '0', margin: '0 auto'}} bodyStyle={{padding: '5px'}}
             title="Markdown editor"
             visible={modalVisible}
             onOk={this.handleOk.bind(this)} okText={'保存'}

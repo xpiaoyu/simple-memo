@@ -283,3 +283,8 @@ table tr:nth-child(2n) {
 img {
   max-width: 100%
 }
+
+textarea.mde-text {
+  font-size: 1.1em;
+  color: #000;
+}
