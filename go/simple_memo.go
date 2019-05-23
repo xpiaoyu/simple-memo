@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/valyala/fasthttp"
 	"io/ioutil"
 	"os"
-	"strings"
-	"fmt"
-	"encoding/json"
 	"sort"
+	"strings"
 )
 
 const (
@@ -217,6 +217,10 @@ func getSummaryAndMarkdown(filename string) (markdown, summary string, err error
 	}
 	markdown = results[0]
 	summary = strings.TrimSpace(results[1])
+	// Set summary length limit.
+	if len(summary) > 200 {
+		summary = summary[:200]
+	}
 	return
 }
 
